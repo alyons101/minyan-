@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from 'react';
-import { Button, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Button, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { useMinyan } from '../context/MinyanContext';
 import { PrayerType, Shul } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { scheduleNotifications } from '../services/notificationService';
 
 export default function SettingsScreen() {
   const { profile, setProfile, shuls, addShul, updateShul, removeShul } = useMinyan();
@@ -15,10 +17,35 @@ export default function SettingsScreen() {
   const [locationEnabled, setLocationEnabled] = useState(profile.locationEnabled ?? true);
   const [pauseStreak, setPauseStreak] = useState(profile.pauseStreak || false);
 
-  const notificationPreferences = useMemo(() => ({ ...profile.notificationPreferences }), [profile.notificationPreferences]);
+  const [notificationPreferences, setNotificationPreferences] = useState(profile.notificationPreferences);
+
+  useEffect(() => {
+    setNotificationPreferences(profile.notificationPreferences);
+  }, [profile.notificationPreferences]);
 
   const handleSaveProfile = async () => {
-    await setProfile({
+    // Validate times
+    for (const type of Object.keys(notificationPreferences) as PrayerType[]) {
+      const pref = notificationPreferences[type];
+      if (pref.enabled && pref.time) {
+        const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+        if (!timeRegex.test(pref.time)) {
+          Alert.alert('Invalid Time', `Please enter a valid time (HH:mm) for ${type}.`);
+          return;
+        }
+      }
+    }
+
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+      const { status: newStatus } = await Notifications.requestPermissionsAsync();
+      if (newStatus !== 'granted') {
+        Alert.alert('Permission Required', 'Please enable notifications to receive reminders.');
+        return;
+      }
+    }
+
+    const updatedProfile = {
       ...profile,
       name,
       primaryArea,
@@ -29,7 +56,9 @@ export default function SettingsScreen() {
       locationEnabled,
       pauseStreak,
       notificationPreferences
-    });
+    };
+    await setProfile(updatedProfile);
+    await scheduleNotifications(updatedProfile);
   };
 
   const handleAddShul = async () => {
@@ -41,8 +70,14 @@ export default function SettingsScreen() {
     await addShul(newShul);
   };
 
-  const updateNotification = (type: PrayerType, minutesBefore: number) => {
-    notificationPreferences[type] = { ...notificationPreferences[type], minutesBefore };
+  const updateNotification = (type: PrayerType, field: 'minutesBefore' | 'time' | 'enabled', value: any) => {
+    setNotificationPreferences((prev) => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        [field]: value
+      }
+    }));
   };
 
   return (
@@ -88,15 +123,37 @@ export default function SettingsScreen() {
       <View style={styles.block}>
         <Text style={styles.label}>Notifications</Text>
         {(Object.keys(notificationPreferences) as PrayerType[]).map((type) => (
-          <View key={type} style={styles.row}>
-            <Text style={{ flex: 1 }}>{type}</Text>
-            <TextInput
-              style={[styles.input, styles.numberInput]}
-              keyboardType="numeric"
-              value={String(notificationPreferences[type].minutesBefore)}
-              onChangeText={(value) => updateNotification(type, Number(value))}
-            />
-            <Text style={{ marginLeft: 4 }}>min before</Text>
+          <View key={type} style={styles.notificationRow}>
+            <View style={styles.notificationHeader}>
+              <Text style={styles.notificationTitle}>{type}</Text>
+              <Switch
+                value={notificationPreferences[type].enabled}
+                onValueChange={(val) => updateNotification(type, 'enabled', val)}
+              />
+            </View>
+
+            {notificationPreferences[type].enabled && (
+              <View style={styles.notificationDetails}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.smallLabel}>Time (HH:mm)</Text>
+                  <TextInput
+                    style={[styles.input, styles.timeInput]}
+                    value={notificationPreferences[type].time || ''}
+                    placeholder="00:00"
+                    onChangeText={(val) => updateNotification(type, 'time', val)}
+                  />
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.smallLabel}>Minutes Before</Text>
+                  <TextInput
+                    style={[styles.input, styles.numberInput]}
+                    keyboardType="numeric"
+                    value={String(notificationPreferences[type].minutesBefore)}
+                    onChangeText={(value) => updateNotification(type, 'minutesBefore', Number(value))}
+                  />
+                </View>
+              </View>
+            )}
           </View>
         ))}
       </View>
@@ -154,5 +211,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginVertical: 6
+  },
+  notificationRow: {
+    marginBottom: 12,
+    padding: 10,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  notificationTitle: {
+    fontWeight: '600',
+    fontSize: 16
+  },
+  notificationDetails: {
+    flexDirection: 'row',
+    gap: 16
+  },
+  inputGroup: {
+    flex: 1
+  },
+  smallLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4
+  },
+  timeInput: {
+    width: '100%'
   }
 });
