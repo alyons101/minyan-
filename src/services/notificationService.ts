@@ -22,17 +22,21 @@ export async function scheduleNotifications(profile: UserProfile) {
       const triggerHour = notificationTime.getHours();
       const triggerMinute = notificationTime.getMinutes();
 
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `${prayer} Reminder`,
-          body: `It's time to get ready for ${prayer}!`,
-        },
-        trigger: {
-          hour: triggerHour,
-          minute: triggerMinute,
-          repeats: true,
-        },
-      });
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `${prayer} Reminder`,
+            body: `It's time to get ready for ${prayer}!`,
+          },
+          trigger: {
+            hour: triggerHour,
+            minute: triggerMinute,
+            repeats: true,
+          },
+        });
+      } catch (err) {
+        console.warn(`Failed to schedule notification for ${prayer}:`, err);
+      }
     }
   }
 }

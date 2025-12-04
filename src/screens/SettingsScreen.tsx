@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Button, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useMinyan } from '../context/MinyanContext';
 import { PrayerType, Shul } from '../types';
@@ -19,9 +19,52 @@ export default function SettingsScreen() {
 
   const [notificationPreferences, setNotificationPreferences] = useState(profile.notificationPreferences);
 
+  // Shul management state
+  const [shulModalVisible, setShulModalVisible] = useState(false);
+  const [editingShulId, setEditingShulId] = useState<string | null>(null);
+  const [shulNameInput, setShulNameInput] = useState('');
+  const [shulAreaInput, setShulAreaInput] = useState('');
+
   useEffect(() => {
     setNotificationPreferences(profile.notificationPreferences);
   }, [profile.notificationPreferences]);
+
+  const openAddShul = () => {
+    setEditingShulId(null);
+    setShulNameInput('');
+    setShulAreaInput(primaryArea);
+    setShulModalVisible(true);
+  };
+
+  const openEditShul = (shul: Shul) => {
+    setEditingShulId(shul.id);
+    setShulNameInput(shul.name);
+    setShulAreaInput(shul.area);
+    setShulModalVisible(true);
+  };
+
+  const saveShul = async () => {
+    if (!shulNameInput.trim()) {
+      Alert.alert('Error', 'Shul name is required');
+      return;
+    }
+
+    if (editingShulId) {
+      // Update
+      const existing = shuls.find(s => s.id === editingShulId);
+      if (existing) {
+        await updateShul({ ...existing, name: shulNameInput, area: shulAreaInput });
+      }
+    } else {
+      // Add
+      await addShul({
+        id: uuidv4(),
+        name: shulNameInput,
+        area: shulAreaInput
+      });
+    }
+    setShulModalVisible(false);
+  };
 
   const handleSaveProfile = async () => {
     // Validate times
@@ -59,15 +102,6 @@ export default function SettingsScreen() {
     };
     await setProfile(updatedProfile);
     await scheduleNotifications(updatedProfile);
-  };
-
-  const handleAddShul = async () => {
-    const newShul: Shul = {
-      id: uuidv4(),
-      name: 'New Shul',
-      area: primaryArea
-    };
-    await addShul(newShul);
   };
 
   const updateNotification = (type: PrayerType, field: 'minutesBefore' | 'time' | 'enabled', value: any) => {
@@ -163,14 +197,48 @@ export default function SettingsScreen() {
         {shuls.map((shul) => (
           <View key={shul.id} style={styles.row}>
             <Text style={{ flex: 1 }}>{shul.name}</Text>
-            <Button title="Rename" onPress={() => updateShul({ ...shul, name: `${shul.name} *` })} />
+            <Button title="Rename" onPress={() => openEditShul(shul)} />
             <Button title="Delete" onPress={() => removeShul(shul.id)} />
           </View>
         ))}
-        <Button title="Add Shul" onPress={handleAddShul} />
+        <Button title="Add Shul" onPress={openAddShul} />
       </View>
 
       <Button title="Save" onPress={handleSaveProfile} />
+
+      <Modal
+        visible={shulModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShulModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{editingShulId ? 'Edit Shul' : 'Add Shul'}</Text>
+
+            <Text style={styles.label}>Shul Name</Text>
+            <TextInput
+              style={styles.input}
+              value={shulNameInput}
+              onChangeText={setShulNameInput}
+              placeholder="Shul Name"
+            />
+
+            <Text style={[styles.label, { marginTop: 12 }]}>Area</Text>
+            <TextInput
+              style={styles.input}
+              value={shulAreaInput}
+              onChangeText={setShulAreaInput}
+              placeholder="Area (e.g. Hendon)"
+            />
+
+            <View style={styles.modalButtons}>
+              <Button title="Cancel" onPress={() => setShulModalVisible(false)} color="#999" />
+              <Button title="Save" onPress={saveShul} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -242,5 +310,31 @@ const styles = StyleSheet.create({
   },
   timeInput: {
     width: '100%'
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    elevation: 5
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center'
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20
   }
 });
