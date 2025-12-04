@@ -30,9 +30,9 @@ const defaultProfile: UserProfile = {
   name: '',
   primaryArea: 'Hendon',
   notificationPreferences: {
-    Shacharit: { enabled: false, minutesBefore: 20 },
-    Mincha: { enabled: false, minutesBefore: 15 },
-    Maariv: { enabled: false, minutesBefore: 15 }
+    Shacharit: { enabled: false, minutesBefore: 20, time: '07:00' },
+    Mincha: { enabled: false, minutesBefore: 15, time: '13:30' },
+    Maariv: { enabled: false, minutesBefore: 15, time: '19:00' }
   },
   proofOfAttendance: false,
   photoCheckIn: false,

@@ -37,6 +37,7 @@ export interface UserProfile {
 export interface NotificationPreference {
   enabled: boolean;
   minutesBefore: number;
+  time?: string; // HH:mm format
 }
 
 export interface Badge {
