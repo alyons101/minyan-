@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Button, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { MinyanPicker } from '../components/MinyanPicker';
 import { useMinyan } from '../context/MinyanContext';
 import { PrayerType } from '../types';
 
@@ -47,11 +47,11 @@ export default function LogScreen() {
       </View>
 
       <Text style={styles.label}>Shul</Text>
-      <Picker selectedValue={shulId} onValueChange={(value) => setShulId(value.toString())}>
+      <MinyanPicker selectedValue={shulId} onValueChange={(value: string) => setShulId(value)}>
         {shuls.map((s) => (
-          <Picker.Item key={s.id} label={`${s.name} (${s.area})`} value={s.id} />
+          <MinyanPicker.Item key={s.id} label={`${s.name} (${s.area})`} value={s.id} />
         ))}
-      </Picker>
+      </MinyanPicker>
 
       {profile.travelMode && (
         <View style={styles.block}>
