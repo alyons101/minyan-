@@ -1,0 +1,43 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String   @id @default(uuid())
+  name            String?
+  primaryArea     String?
+  defaultShulId   String?
+  travelMode      Boolean  @default(false)
+  logs            MinyanLog[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Shul {
+  id        String   @id @default(uuid())
+  name      String
+  area      String
+  address   String?
+  logs      MinyanLog[]
+}
+
+model MinyanLog {
+  id          String   @id @default(uuid())
+  date        DateTime // Storing as DateTime for easier query
+  time        String?
+  prayerType  String   // Shacharit, Mincha, Maariv
+  shulId      String?
+  shul        Shul?    @relation(fields: [shulId], references: [id])
+  shulName    String?  // Fallback if shul deleted or custom
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  photoUri    String?
+  note        String?
+  travelArea  String?
+  createdAt   DateTime @default(now())
+}

@@ -1,32 +1,56 @@
-# Minyan Tracker (React Native)
+# Minyan Tracker
 
-A React Native + TypeScript starter implementing the "Minyan Tracker" experience with photo-first logging, local persistence, streaks, and badge scaffolding. The app is structured for Expo and uses local storage so it can be wired to an API or Firebase later.
+A full-stack Minyan Tracker application with a Mobile App (React Native), Web Frontend (React), and Backend API (Node.js/Express).
 
-## Features
-- Log Shacharit / Mincha / Maariv with shul selection, reflections, optional travel area, and proof-of-attendance photo capture.
-- Photo album view that shows every photo-backed minyan entry with prayer, shul, and timestamp labels.
-- Stats with streaks, prayer breakdown, levels (10 points per minyan), and starter badge logic.
-- History list with notes and travel labels.
-- Settings for profile basics, travel mode, proof-of-attendance toggle, default photo check-in, notifications lead time, location usage, and shul management (add/rename/delete).
-- Data saved locally via `AsyncStorage`; preset shuls for Hendon and Golders Green.
+## Project Structure
 
-## Project structure
-- `App.tsx` – navigation shell with bottom tabs and provider wiring.
-- `src/context/MinyanContext.tsx` – state, persistence, photo + location capture, logging, stats/level derivation.
-- `src/screens/` – UI for Log, Album, Stats, History, Settings.
-- `src/services/` – storage helpers and minyan/stat helpers.
-- `src/data/shuls.ts` – seed shuls.
-- `src/types/` – shared TypeScript models.
+- `mobile/`: Existing React Native / Expo application.
+- `web/`: New React web frontend (Vite).
+- `server/`: Backend API (Node.js, Express, Prisma, SQLite).
 
-## Running
-1. Install dependencies (requires Node and Expo tooling):
+## Quick Start (Web + Backend)
+
+To run the web application (which includes the backend):
+
+1. **Install Dependencies**
+   ```bash
+   npm run install-all
    ```
-   npm install
+
+2. **Build**
+   ```bash
+   npm run build
+   ```
+
+3. **Initialize Database**
+   ```bash
+   npm run seed
+   ```
+
+4. **Start**
+   ```bash
    npm start
    ```
-2. Open the Expo dev tools and launch on iOS/Android simulator or device.
+   Open `http://localhost:3000` in your browser.
 
-## Notes
-- Photo capture uses Expo Image Picker camera with **no blurring or filters** per requirement; proof-of-attendance mode enforces a photo.
-- Location is requested when enabled; missing permission will simply skip attaching coordinates.
-- Notification settings are stored but triggering local notifications is not wired yet; ready for future implementation.
+## Mobile App
+
+To run the mobile app:
+
+```bash
+cd mobile
+npm install
+npm start
+```
+
+## Deployment
+
+### Full Stack (Web + Backend)
+Deploy the `server` directory. The build process copies the web frontend into `server/public`, so the server acts as both the API and the static file host.
+
+- **Build Command**: `npm install && npm run build` (from root, or `cd server && npm install && npm run build` if deploying just server context with copied assets).
+- **Start Command**: `npm start` (which runs `node dist/index.js` in server).
+- **Environment Variables**: Ensure `DATABASE_URL` is set (e.g., `file:./prod.db` or a Postgres URL).
+
+### Mobile
+Deploy via Expo or build native binaries as usual.
